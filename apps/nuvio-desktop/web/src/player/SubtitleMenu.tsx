@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { PlayerSnapshot, ProfileSettings, SubtitleSettings } from "../types";
 import { useSubtitles } from "./subtitles";
+import { formatNumber, t } from "../i18n";
 
 const SAVE_MS = 350;
 
@@ -66,31 +67,31 @@ function Adjust({ snapshot }: { snapshot: PlayerSnapshot }) {
 
   return (
     <>
-      <span className="pc-enhance-title">Atraso da legenda</span>
+      <span className="pc-enhance-title">{t("subs.delay")}</span>
       <div className="pc-delay">
-        <button className="pc-level" aria-label="Adiantar legenda" onClick={() => delay(snapshot.subDelayMs - 250)}>−0,25 s</button>
-        <output data-testid="subtitle-delay">{(snapshot.subDelayMs / 1000).toFixed(2).replace(".", ",")} s</output>
-        <button className="pc-level" aria-label="Atrasar legenda" onClick={() => delay(snapshot.subDelayMs + 250)}>+0,25 s</button>
-        <button className="pc-level" disabled={!snapshot.subDelayMs} onClick={() => delay(0)}>Zerar</button>
+        <button className="pc-level" aria-label={t("subs.earlier")} onClick={() => delay(snapshot.subDelayMs - 250)}>−{formatNumber(0.25)} s</button>
+        <output data-testid="subtitle-delay">{formatNumber(snapshot.subDelayMs / 1000, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} s</output>
+        <button className="pc-level" aria-label={t("subs.later")} onClick={() => delay(snapshot.subDelayMs + 250)}>+{formatNumber(0.25)} s</button>
+        <button className="pc-level" disabled={!snapshot.subDelayMs} onClick={() => delay(0)}>{t("subs.reset")}</button>
       </div>
       {style && (
         <>
-          <span className="pc-enhance-title">Aparência</span>
+          <span className="pc-enhance-title">{t("subs.look")}</span>
           <label className="pc-sub-slider">
-            <span>Tamanho</span>
-            <input type="range" min={6} max={40} value={style.fontSizeSp} aria-label="Tamanho da legenda" onChange={(e) => change({ fontSizeSp: Number(e.target.value) })} />
+            <span>{t("subs.size")}</span>
+            <input type="range" min={6} max={40} value={style.fontSizeSp} aria-label={t("subs.sizeLabel")} onChange={(e) => change({ fontSizeSp: Number(e.target.value) })} />
             <output>{style.fontSizeSp}</output>
           </label>
           <label className="pc-sub-slider">
-            <span>Altura</span>
-            <input type="range" min={0} max={200} value={style.bottomOffset} aria-label="Altura da legenda" onChange={(e) => change({ bottomOffset: Number(e.target.value) })} />
+            <span>{t("subs.height")}</span>
+            <input type="range" min={0} max={200} value={style.bottomOffset} aria-label={t("subs.heightLabel")} onChange={(e) => change({ bottomOffset: Number(e.target.value) })} />
             <output>{style.bottomOffset}</output>
           </label>
           <div className="pc-motion">
-            <button className={`pc-level ${style.bold ? "active" : ""}`} aria-pressed={style.bold} onClick={() => change({ bold: !style.bold })}>Negrito</button>
-            <button className={`pc-level ${style.outlineEnabled ? "active" : ""}`} aria-pressed={style.outlineEnabled} onClick={() => change({ outlineEnabled: !style.outlineEnabled })}>Contorno</button>
+            <button className={`pc-level ${style.bold ? "active" : ""}`} aria-pressed={style.bold} onClick={() => change({ bold: !style.bold })}>{t("subs.bold")}</button>
+            <button className={`pc-level ${style.outlineEnabled ? "active" : ""}`} aria-pressed={style.outlineEnabled} onClick={() => change({ outlineEnabled: !style.outlineEnabled })}>{t("subs.outline")}</button>
           </div>
-          <p className="pc-enhance-note">Fonte, cores e fundo ficam em Configurações → Legendas.</p>
+          <p className="pc-enhance-note">{t("subs.moreInSettings")}</p>
         </>
       )}
     </>
@@ -123,25 +124,25 @@ export function SubtitleMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
   }, [open]);
 
   let empty: string | null = null;
-  if (!snapshot.loaded) empty = "Aguardando o vídeo carregar…";
+  if (!snapshot.loaded) empty = t("subs.waiting");
   else if (!searching && !error && !groups.length) {
     empty = list?.failed
-      ? "Os addons de legenda não responderam. Abra de novo para tentar outra vez."
+      ? t("subs.addonsFailed")
       : list?.addons
-        ? "Nenhuma legenda encontrada para este vídeo."
-        : "Este vídeo não traz legendas. Para buscar outras, instale um addon de legendas em Configurações → Addons.";
+        ? t("subs.noneFound")
+        : t("subs.noneInFile");
   }
 
   return (
     <div className="pc-subtitles" ref={root}>
-      <button className={`pc-icon ${off ? "" : "pc-on"}`} aria-label="Legendas" title="Legendas" aria-expanded={open} data-testid="subtitle-button" onClick={() => setOpen((v) => !v)}>
+      <button className={`pc-icon ${off ? "" : "pc-on"}`} aria-label={t("subs.title")} title={t("subs.title")} aria-expanded={open} data-testid="subtitle-button" onClick={() => setOpen((v) => !v)}>
         {CcIcon}
       </button>
       {open && (
         <div className="pc-enhance-menu" data-testid="subtitle-menu">
           <div className="pc-tabs" role="tablist">
-            <button role="tab" aria-selected={tab === "list"} className={`pc-tab ${tab === "list" ? "active" : ""}`} onClick={() => setTab("list")}>Legendas</button>
-            <button role="tab" aria-selected={tab === "adjust"} className={`pc-tab ${tab === "adjust" ? "active" : ""}`} data-testid="subtitle-adjust" onClick={() => setTab("adjust")}>Ajustes</button>
+            <button role="tab" aria-selected={tab === "list"} className={`pc-tab ${tab === "list" ? "active" : ""}`} onClick={() => setTab("list")}>{t("subs.title")}</button>
+            <button role="tab" aria-selected={tab === "adjust"} className={`pc-tab ${tab === "adjust" ? "active" : ""}`} data-testid="subtitle-adjust" onClick={() => setTab("adjust")}>{t("subs.adjust")}</button>
           </div>
           <div className="pc-tab-body">
             {tab === "adjust" ? (
@@ -149,7 +150,7 @@ export function SubtitleMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
             ) : (
               <>
                 <button className={`pc-level ${off && !loading ? "active" : ""}`} aria-pressed={off} data-subtitle="off" onClick={() => void choose(null)}>
-                  <b>Desativadas</b>
+                  <b>{t("subs.off")}</b>
                 </button>
                 {groups.map((group) => (
                   <div key={group.language} className="pc-sub-group" data-language={group.language}>
@@ -159,13 +160,13 @@ export function SubtitleMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
                       return (
                         <button key={choice.id} className={`pc-level ${active ? "active" : ""}`} aria-pressed={active} disabled={loading !== null} data-subtitle={choice.id} onClick={() => void choose(choice)}>
                           <b>{choice.label}</b>
-                          <small>{loading === choice.id ? "Carregando…" : choice.detail}</small>
+                          <small>{loading === choice.id ? t("common.loading") : choice.detail}</small>
                         </button>
                       );
                     })}
                   </div>
                 ))}
-                {searching && snapshot.loaded && <p className="pc-enhance-note">Buscando legendas nos addons…</p>}
+                {searching && snapshot.loaded && <p className="pc-enhance-note">{t("subs.searching")}</p>}
                 {empty && <p className="pc-enhance-note">{empty}</p>}
                 {error && <p className="pc-enhance-note pc-sub-error" role="alert">{error}</p>}
               </>

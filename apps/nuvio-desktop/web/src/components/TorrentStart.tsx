@@ -7,31 +7,28 @@ import { useEffect, useRef, useState } from "react";
 import { api, errorText } from "../api";
 import { listen } from "../tauri";
 import type { P2pStatus, StreamEntry, TorrentPrepared } from "../types";
+import { formatNumber, t } from "../i18n";
 
-export const P2P_CONSENT_TEXT = [
-  "Esta stream utiliza tecnologia ponto a ponto (P2P). Ao ativar o P2P, você reconhece e concorda que:",
-  "• Seu endereço IP ficará visível para outros peers na rede",
-  "• Você é o único responsável pelo conteúdo que acessa",
-  "• Você confirma que tem o direito legal de transmitir este conteúdo em sua jurisdição",
-  "• O Nuvio não hospeda, distribui nem controla qualquer conteúdo P2P",
-  "• O Nuvio não assume responsabilidade por quaisquer consequências legais resultantes do uso de streaming P2P",
-  "Você utiliza este recurso inteiramente por sua conta e risco. O P2P pode ser desativado a qualquer momento nas Configurações.",
-];
+/** The P2P notice, one paragraph per line. */
+export const p2pConsentText = () =>
+  (["p2p.consent1", "p2p.consent2", "p2p.consent3", "p2p.consent4", "p2p.consent5", "p2p.consent6", "p2p.consent7"] as const).map((k) => t(k));
 
-const PHASES: Record<string, string> = {
-  engine: "Iniciando o motor P2P…",
-  metadata: "Procurando peers e baixando as informações do torrent…",
-  preparing: "Preparando o arquivo de vídeo…",
+const PHASES: Record<string, () => string> = {
+  engine: () => t("p2p.phaseEngine"),
+  metadata: () => t("p2p.phaseMetadata"),
+  preparing: () => t("p2p.phasePreparing"),
 };
 
+const decimal = (value: number, digits: number) => formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
 export function speed(bytes: number): string {
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1).replace(".", ",")} MB/s`;
+  if (bytes >= 1_048_576) return `${decimal(bytes / 1_048_576, 1)} MB/s`;
   if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB/s`;
   return `${bytes} B/s`;
 }
 
 export function megabytes(bytes: number): string {
-  return bytes >= 1_073_741_824 ? `${(bytes / 1_073_741_824).toFixed(2).replace(".", ",")} GB` : `${(bytes / 1_048_576).toFixed(1).replace(".", ",")} MB`;
+  return bytes >= 1_073_741_824 ? `${decimal(bytes / 1_073_741_824, 2)} GB` : `${decimal(bytes / 1_048_576, 1)} MB`;
 }
 
 interface Props {
@@ -94,33 +91,33 @@ export function TorrentStart({ stream, onReady, onCancel }: Props) {
       <div className="modal torrent-start">
         {consent ? (
           <>
-            <h2 id="torrent-title">Streaming P2P</h2>
-            <div className="p2p-consent">{P2P_CONSENT_TEXT.map((l, i) => <p key={i}>{l}</p>)}</div>
+            <h2 id="torrent-title">{t("p2p.title")}</h2>
+            <div className="p2p-consent">{p2pConsentText().map((l, i) => <p key={i}>{l}</p>)}</div>
             <div className="account-actions">
-              <button className="primary" onClick={() => void accept()} data-testid="p2p-accept">Ativar P2P</button>
-              <button className="ghost" onClick={onCancel}>Cancelar</button>
+              <button className="primary" onClick={() => void accept()} data-testid="p2p-accept">{t("p2p.enable")}</button>
+              <button className="ghost" onClick={onCancel}>{t("common.cancel")}</button>
             </div>
           </>
         ) : (
           <>
             <h2 id="torrent-title">{stream.name || "Torrent"}</h2>
             {error ? (
-              <div className="row-error" data-testid="torrent-error">Não foi possível iniciar o torrent: {error}</div>
+              <div className="row-error" data-testid="torrent-error">{t("p2p.startFailed", { error })}</div>
             ) : (
               <>
                 <div className="torrent-phase" data-testid="torrent-phase">
-                  <span className="spinner" aria-hidden /> {PHASES[status?.phase || "engine"] ?? "Conectando…"}
+                  <span className="spinner" aria-hidden /> {PHASES[status?.phase || "engine"]?.() ?? t("p2p.connecting")}
                 </div>
                 <dl className="facts account-facts">
-                  <div className="fact"><dt>Peers</dt><dd>{status?.peers ?? 0} ({status?.seeds ?? 0} seeds)</dd></div>
-                  <div className="fact"><dt>Velocidade</dt><dd>{speed(status?.downloadSpeed ?? 0)}</dd></div>
+                  <div className="fact"><dt>{t("p2p.peers")}</dt><dd>{t("p2p.peersValue", { peers: status?.peers ?? 0, seeds: status?.seeds ?? 0 })}</dd></div>
+                  <div className="fact"><dt>{t("p2p.speed")}</dt><dd dir="ltr">{speed(status?.downloadSpeed ?? 0)}</dd></div>
                 </dl>
-                <p className="muted small">A reprodução começa assim que o início do arquivo estiver disponível; o restante é baixado enquanto você assiste.</p>
+                <p className="muted small">{t("p2p.note")}</p>
               </>
             )}
             <div className="account-actions">
-              {error && <button className="primary" onClick={() => setAttempt((a) => a + 1)}>Tentar novamente</button>}
-              <button className="ghost" onClick={cancel} data-testid="torrent-cancel">Cancelar</button>
+              {error && <button className="primary" onClick={() => setAttempt((a) => a + 1)}>{t("common.retry")}</button>}
+              <button className="ghost" onClick={cancel} data-testid="torrent-cancel">{t("common.cancel")}</button>
             </div>
           </>
         )}

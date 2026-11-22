@@ -14,6 +14,7 @@ import { dataEpoch, onDataEpoch } from "../api";
 import { ResultRow } from "../components/ResultRow";
 import { invoke, listen } from "../tauri";
 import type { MetaPreview, SearchSection } from "../types";
+import { t } from "../i18n";
 
 interface Props {
   onOpen(item: MetaPreview): void;
@@ -83,10 +84,10 @@ export function Search({ onOpen }: Props) {
   useEffect(() => input.current?.focus(), []);
 
   const addHistory = (q: string) => {
-    const t = q.trim();
-    if (t.length < 2) return;
+    const term = q.trim();
+    if (term.length < 2) return;
     setHistory((h) => {
-      const next = [t, ...h.filter((x) => norm(x) !== norm(t))].slice(0, HISTORY_MAX);
+      const next = [term, ...h.filter((x) => norm(x) !== norm(term))].slice(0, HISTORY_MAX);
       saveHistory(next);
       return next;
     });
@@ -164,8 +165,8 @@ export function Search({ onOpen }: Props) {
   useEffect(() => {
     if (!result?.done || !result.sections.length) return;
     const q = query;
-    const t = window.setTimeout(() => addHistory(q), 2500);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => addHistory(q), 2500);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
 
@@ -183,22 +184,22 @@ export function Search({ onOpen }: Props) {
         <input
           ref={input}
           type="search"
-          placeholder="Buscar filmes, séries…"
+          placeholder={t("search.placeholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && addHistory(query)}
-          aria-label="Buscar"
+          aria-label={t("search.label")}
           data-testid="search-input"
         />
-        {loading && <span className="spinner" aria-label="Buscando" />}
+        {loading && <span className="spinner" aria-label={t("search.busy")} />}
       </div>
 
       {empty && (
         history.length ? (
           <div className="search-history" data-testid="search-history">
             <div className="search-history-head">
-              <span>Pesquisas recentes</span>
-              <button className="link" onClick={clearHistory}>Limpar histórico</button>
+              <span>{t("search.recent")}</span>
+              <button className="link" onClick={clearHistory}>{t("search.clearHistory")}</button>
             </div>
             <div className="search-history-list">
               {history.map((h) => (
@@ -207,17 +208,17 @@ export function Search({ onOpen }: Props) {
                     <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
                     {h}
                   </button>
-                  <button className="history-remove" aria-label={`Remover “${h}” do histórico`} onClick={() => removeHistory(h)}>×</button>
+                  <button className="history-remove" aria-label={t("search.removeTerm", { term: h })} onClick={() => removeHistory(h)}>×</button>
                 </span>
               ))}
             </div>
           </div>
         ) : (
-          <div className="screen-message muted">Digite ao menos 2 letras.</div>
+          <div className="screen-message muted">{t("search.minLength")}</div>
         )
       )}
 
-      {!empty && result?.done && !result.sections.length && <div className="screen-message">Nada encontrado para “{query.trim()}”.</div>}
+      {!empty && result?.done && !result.sections.length && <div className="screen-message">{t("search.nothing", { query: query.trim() })}</div>}
 
       {!empty &&
         shown.map(({ section }) => (

@@ -6,6 +6,7 @@
 // `selected`: `null` = every addon (also the ones that appear later), otherwise the chosen names.
 
 import { useEffect, useRef, useState } from "react";
+import { t } from "../i18n";
 
 interface Props {
   /** Addon name → number of channels it provides. */
@@ -37,7 +38,7 @@ export function AddonPicker({ options, selected, onChange }: Props) {
   const all = names.length > 0 && checked.length === names.length;
   const none = checked.length === 0;
 
-  const label = all ? "Todos os addons" : none ? "Nenhum addon" : checked.length === 1 ? checked[0] : `${checked.length} addons`;
+  const label = all ? t("picker.all") : none ? t("picker.none") : checked.length === 1 ? checked[0] : t("picker.count", { count: checked.length });
 
   const toggleAll = () => onChange(all ? [] : null);
   const toggle = (name: string) => {
@@ -62,11 +63,11 @@ export function AddonPicker({ options, selected, onChange }: Props) {
       </button>
       {open && (
         <div className="addon-picker-menu" role="listbox" aria-multiselectable="true">
-          <div className="addon-picker-title">Addons de canais</div>
+          <div className="addon-picker-title">{t("picker.title")}</div>
           <label className={`addon-picker-option ${all ? "on" : ""}`}>
             <input type="checkbox" checked={all} onChange={toggleAll} />
             <span className="addon-check" aria-hidden />
-            <span className="addon-picker-name">Todos</span>
+            <span className="addon-picker-name">{t("common.all")}</span>
             <span className="count">{options.reduce((n, [, c]) => n + c, 0)}</span>
           </label>
           {options.map(([name, count]) => {

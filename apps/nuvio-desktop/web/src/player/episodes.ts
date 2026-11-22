@@ -2,6 +2,7 @@
 // entry of the addon's list by season and episode.
 
 import type { MetaDetails, MetaVideo, PlayerSnapshot } from "../types";
+import { formatDate, t } from "../i18n";
 
 /** What a session started from Details knows about its episode. */
 export interface EpisodeContext {
@@ -34,10 +35,10 @@ export function hasAired(released: string | null): boolean {
 
 export function airDate(released: string | null): string {
   const day = released?.trim().slice(0, 10);
-  return day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day.split("-").reverse().join("/") : "data a definir";
+  return day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? formatDate(new Date(`${day}T12:00:00`), { day: "2-digit", month: "2-digit", year: "numeric" }) : t("cw.dateTbd");
 }
 
 export function episodeTitle(video: MetaVideo): string {
-  const code = video.season != null && video.episode != null ? `T${video.season} E${video.episode}` : "";
+  const code = video.season != null && video.episode != null ? t("episode.code", { season: video.season, episode: video.episode }) : "";
   return [code, video.title].filter(Boolean).join(" · ");
 }

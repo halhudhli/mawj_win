@@ -10,6 +10,8 @@ import { api } from "../api";
 import type { PlayerSnapshot, ResizeMode, Track } from "../types";
 import { EnhanceMenu } from "./EnhanceMenu";
 import { reachedEnd } from "./episodes";
+import { t } from "../i18n";
+import { backendText } from "../i18n/backend";
 
 export function formatTime(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds || 0));
@@ -19,8 +21,8 @@ export function formatTime(seconds: number): string {
   return (h ? `${h}:${String(m).padStart(2, "0")}` : `${m}`) + `:${String(r).padStart(2, "0")}`;
 }
 
-export function trackLabel(t: Track): string {
-  return (t.external ? "📄 " : "") + ([t.title, t.lang, t.codec].filter(Boolean).join(" · ") || `#${t.id}`);
+export function trackLabel(track: Track): string {
+  return (track.external ? "📄 " : "") + ([track.title, track.lang, track.codec].filter(Boolean).join(" · ") || `#${track.id}`);
 }
 
 const svg = (children: ReactNode) => (
@@ -65,27 +67,27 @@ export function PlayerControls({ snapshot: s, live, fullscreen, onToggleFullscre
   const timePos = s?.timePos ?? 0;
   const position = seekDraft ?? (duration > 0 ? timePos / duration : 0);
   const buffered = duration > 0 ? Math.min(1, Math.max(position, (timePos + Math.max(0, s?.cacheSeconds ?? 0)) / duration)) : 0;
-  const audio = s?.tracks.filter((t) => t.kind === "audio") ?? [];
-  const subs = s?.tracks.filter((t) => t.kind === "sub") ?? [];
+  const audio = s?.tracks.filter((track) => track.kind === "audio") ?? [];
+  const subs = s?.tracks.filter((track) => track.kind === "sub") ?? [];
   const volume = Math.round(s?.volume ?? 100);
 
   useEffect(() => setSeekDraft(null), [s?.session]);
 
   const status = !s
-    ? "Abrindo…"
+    ? t("player.opening")
     : s.error
-      ? `Erro: ${s.error}`
+      ? t("player.error", { error: backendText(s.error) })
       : s.buffering || !s.loaded
-        ? "Carregando…"
+        ? t("common.loading")
         : s.ended
-          ? reachedEnd(s) || live ? "Fim" : "A transmissão parou antes do fim. Seu ponto ficou salvo."
+          ? reachedEnd(s) || live ? t("player.end") : t("player.stoppedEarly")
           : null;
 
   const pct = (v: number) => `${(v * 100).toFixed(3)}%`;
 
   const volumeControl = (
     <label className="volume">
-      <button className="pc-icon" aria-label={s?.mute ? "Ativar som" : "Silenciar"} onClick={() => void api.playerCommand({ type: "setMute", mute: !s?.mute })}>
+      <button className="pc-icon" aria-label={s?.mute ? t("player.unmute") : t("player.mute")} onClick={() => void api.playerCommand({ type: "setMute", mute: !s?.mute })}>
         {s?.mute ? Icons.muted : Icons.volume}
       </button>
       <input
@@ -94,7 +96,7 @@ export function PlayerControls({ snapshot: s, live, fullscreen, onToggleFullscre
         min={0}
         max={200}
         value={volume}
-        aria-label="Volume"
+        aria-label={t("player.volume")}
         style={{ ["--fill" as string]: `${(volume / 200) * 100}%` }}
         onChange={(e) => void api.playerCommand({ type: "setVolume", volume: Number(e.target.value) })}
       />
@@ -116,7 +118,7 @@ export function PlayerControls({ snapshot: s, live, fullscreen, onToggleFullscre
             min={0}
             max={1000}
             value={Math.round(position * 1000)}
-            aria-label="Posição"
+            aria-label={t("player.position")}
             onChange={(e) => setSeekDraft(Number(e.target.value) / 1000)}
             onPointerUp={() => {
               if (seekDraft !== null) void api.playerCommand({ type: "seek", seconds: seekDraft * duration, relative: false });
@@ -130,15 +132,15 @@ export function PlayerControls({ snapshot: s, live, fullscreen, onToggleFullscre
         </div>
       )}
       <div className="row" onDoubleClick={(e) => e.stopPropagation()}>
-        <button className="pc-btn pc-play" aria-label={s?.paused ? "Reproduzir" : "Pausar"} onClick={() => void api.playerCommand({ type: "togglePause" })}>
+        <button className="pc-btn pc-play" aria-label={s?.paused ? t("player.play") : t("player.pause")} onClick={() => void api.playerCommand({ type: "togglePause" })}>
           {s?.paused ? Icons.play : Icons.pause}
         </button>
         {!live && (
           <>
-            <button className="pc-btn pc-skip" aria-label="Voltar 10 s" onClick={() => void api.playerCommand({ type: "seek", seconds: -10, relative: true })}>
+            <button className="pc-btn pc-skip" aria-label={t("player.back10")} onClick={() => void api.playerCommand({ type: "seek", seconds: -10, relative: true })}>
               {Icons.back}<span>10</span>
             </button>
-            <button className="pc-btn pc-skip" aria-label="Avançar 10 s" onClick={() => void api.playerCommand({ type: "seek", seconds: 10, relative: true })}>
+            <button className="pc-btn pc-skip" aria-label={t("player.forward10")} onClick={() => void api.playerCommand({ type: "seek", seconds: 10, relative: true })}>
               <span>10</span>{Icons.forward}
             </button>
             <span className="time">
@@ -148,48 +150,48 @@ export function PlayerControls({ snapshot: s, live, fullscreen, onToggleFullscre
         )}
         {/* Live: play/pause, volume, then the AO VIVO mark. */}
         {live && <span className="pc-live-volume">{volumeControl}</span>}
-        {live && <span className="live-dot">AO VIVO</span>}
+        {live && <span className="live-dot">{t("player.live")}</span>}
         {next && (
-          <button className="pc-btn pc-next" aria-label="Próximo episódio" title={next.label} disabled={next.disabled} data-testid="next-episode" onClick={next.open}>
-            {Icons.next}<span>Próximo episódio</span>
+          <button className="pc-btn pc-next" aria-label={t("player.nextEpisode")} title={next.label} disabled={next.disabled} data-testid="next-episode" onClick={next.open}>
+            {Icons.next}<span>{t("player.nextEpisode")}</span>
           </button>
         )}
         <span className="spacer" />
         <div className="pc-panel">
           {!live && volumeControl}
           {audio.length > 1 && (
-            <select className="pc-select" aria-label="Faixa de áudio" value={s?.aid ?? "no"} onChange={(e) => void api.playerCommand({ type: "setAudioTrack", id: e.target.value })}>
-              {audio.map((t) => <option key={t.id} value={String(t.id)}>{trackLabel(t)}</option>)}
+            <select className="pc-select" aria-label={t("player.audioTrack")} value={s?.aid ?? "no"} onChange={(e) => void api.playerCommand({ type: "setAudioTrack", id: e.target.value })}>
+              {audio.map((track) => <option key={track.id} value={String(track.id)}>{trackLabel(track)}</option>)}
             </select>
           )}
           {subtitles}
           {!subtitles && subs.length > 0 && (
-            <select className="pc-select" aria-label="Legenda" value={s?.sid && s.sid !== "no" ? s.sid : "no"} onChange={(e) => void api.playerCommand({ type: "setSubtitleTrack", id: e.target.value })}>
-              <option value="no">Sem legenda</option>
-              {subs.map((t) => <option key={t.id} value={String(t.id)}>{trackLabel(t)}</option>)}
+            <select className="pc-select" aria-label={t("player.subtitle")} value={s?.sid && s.sid !== "no" ? s.sid : "no"} onChange={(e) => void api.playerCommand({ type: "setSubtitleTrack", id: e.target.value })}>
+              <option value="no">{t("player.noSubtitle")}</option>
+              {subs.map((track) => <option key={track.id} value={String(track.id)}>{trackLabel(track)}</option>)}
             </select>
           )}
           {!live && (
-            <select className="pc-select pc-plain" aria-label="Velocidade" value={String(s?.speed ?? 1)} onChange={(e) => void api.playerCommand({ type: "setSpeed", speed: Number(e.target.value) })}>
+            <select className="pc-select pc-plain" aria-label={t("player.speed")} value={String(s?.speed ?? 1)} onChange={(e) => void api.playerCommand({ type: "setSpeed", speed: Number(e.target.value) })}>
               {[0.5, 0.75, 1, 1.25, 1.5, 2].map((v) => <option key={v} value={String(v)}>{v}x</option>)}
             </select>
           )}
           {!live && (
-            <select className="pc-select pc-pill" aria-label="Modo de imagem" value={mode} onChange={(e) => {
+            <select className="pc-select pc-pill" aria-label={t("player.resizeMode")} value={mode} onChange={(e) => {
               const next = e.target.value as ResizeMode;
               setMode(next);
               void api.playerCommand({ type: "setResizeMode", mode: next });
             }}>
-              <option value="fit">Ajustar</option>
-              <option value="fill">Preencher</option>
-              <option value="zoom">Zoom</option>
-              <option value="stretch">Esticar</option>
+              <option value="fit">{t("player.fit")}</option>
+              <option value="fill">{t("player.fill")}</option>
+              <option value="zoom">{t("player.zoom")}</option>
+              <option value="stretch">{t("player.stretch")}</option>
             </select>
           )}
           {!live && s && <EnhanceMenu key={`enhance-${s.session}`} snapshot={s} />}
-          {onPictureInPicture && <button className="pc-icon" aria-label="Picture-in-picture" onClick={onPictureInPicture}>{Icons.pip}</button>}
-          {onClose && <button className="pc-icon" aria-label="Fechar" onClick={onClose}>{Icons.close}</button>}
-          <button className="pc-icon" aria-label={fullscreen ? "Sair da tela cheia" : "Tela cheia"} onClick={onToggleFullscreen}>
+          {onPictureInPicture && <button className="pc-icon" aria-label={t("player.pip")} onClick={onPictureInPicture}>{Icons.pip}</button>}
+          {onClose && <button className="pc-icon" aria-label={t("common.close")} onClick={onClose}>{Icons.close}</button>}
+          <button className="pc-icon" aria-label={fullscreen ? t("player.exitFullscreen") : t("player.fullscreen")} onClick={onToggleFullscreen}>
             {fullscreen ? Icons.exitFullscreen : Icons.fullscreen}
           </button>
         </div>

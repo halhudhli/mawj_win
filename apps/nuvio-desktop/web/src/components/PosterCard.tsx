@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { MetaPreview } from "../types";
 import { FavoriteButton } from "./FavoriteButton";
+import { t } from "../i18n";
 
 interface Props {
   item: MetaPreview;
@@ -10,10 +11,10 @@ interface Props {
 }
 
 export function typeLabel(contentType: string): string {
-  const t = contentType.toLowerCase();
-  if (t === "movie") return "Filme";
-  if (t === "series" || t === "tv" || t === "show") return "Série";
-  if (t === "anime") return "Anime";
+  const type = contentType.toLowerCase();
+  if (type === "movie") return t("type.one.movie");
+  if (type === "series" || type === "tv" || type === "show") return t("type.one.series");
+  if (type === "anime") return t("type.one.anime");
   return contentType;
 }
 

@@ -8,6 +8,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import type { CollectionView, FolderView } from "../types";
 import { useInView } from "./useInView";
+import { inlineSign, t } from "../i18n";
 
 const VIDEO = /\.(mp4|webm|m4v|mov)(\?|#|$)/i;
 
@@ -123,14 +124,14 @@ interface Props {
 
 export function CollectionRow({ title, collection, onOpenFolder }: Props) {
   const track = useRef<HTMLDivElement>(null);
-  const scrollBy = (dir: number) => track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.85, behavior: "smooth" });
+  const scrollBy = (dir: number) => track.current?.scrollBy({ left: dir * inlineSign() * track.current.clientWidth * 0.85, behavior: "smooth" });
   return (
     <section className="row-section collection-row" data-collection={collection.id}>
       <header className="row-header">
         <h2>{title}</h2>
         <span className="spacer" />
-        <button className="icon-btn" aria-label="Anterior" onClick={() => scrollBy(-1)}>‹</button>
-        <button className="icon-btn" aria-label="Próximo" onClick={() => scrollBy(1)}>›</button>
+        <button className="icon-btn" aria-label={t("common.previous")} onClick={() => scrollBy(-1)}>‹</button>
+        <button className="icon-btn" aria-label={t("common.next")} onClick={() => scrollBy(1)}>›</button>
       </header>
       <div className="row-track" ref={track}>
         {collection.folders.map((folder) => (

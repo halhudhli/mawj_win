@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { api, errorText } from "../api";
 import { set as setAccount } from "../account";
+import { t } from "../i18n";
+import { backendText } from "../i18n/backend";
 
 interface Props {
   onSignedIn(): void;
@@ -48,21 +50,21 @@ export function SignInForm({ onSignedIn, signUp = false }: Props) {
   return (
     <form className="account-form gate-form" noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }}>
       <label className="field">
-        <span>E-mail</span>
-        <input type="text" inputMode="email" autoComplete="username" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} data-testid="gate-email" />
+        <span>{t("acc.email")}</span>
+        <input type="text" dir="ltr" inputMode="email" autoComplete="username" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} data-testid="gate-email" />
       </label>
       <label className="field">
-        <span>{creating ? "Senha (mínimo de 6 caracteres)" : "Senha"}</span>
+        <span>{creating ? t("acc.passwordMin") : t("acc.password")}</span>
         <input type="password" autoComplete={creating ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} data-testid="gate-password" />
       </label>
       {error && <div className="row-error" role="alert">{error}</div>}
-      {notice && <div className="banner" role="status">{notice}</div>}
+      {notice && <div className="banner" role="status">{backendText(notice)}</div>}
       <button className="primary" type="submit" disabled={busy || !email.trim() || !password || tooShort} data-testid="gate-sign-in">
-        {busy ? "Aguarde…" : creating ? "Criar conta" : "Entrar"}
+        {busy ? t("acc.wait") : creating ? t("acc.create") : t("acc.signIn")}
       </button>
       {signUp && (
         <button className="gate-link" type="button" disabled={busy} onClick={() => { setCreating((v) => !v); setError(null); }}>
-          {creating ? "Já tenho conta: entrar" : "Não tenho conta: criar"}
+          {creating ? t("acc.haveAccount") : t("acc.noAccount")}
         </button>
       )}
     </form>

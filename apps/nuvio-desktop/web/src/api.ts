@@ -1,4 +1,6 @@
 import { invoke } from "./tauri";
+import { t } from "./i18n";
+import { backendText } from "./i18n/backend";
 import type {
   EpgView,
   SubtitleFont,
@@ -204,6 +206,9 @@ async function changed<T>(reason: "profile" | "addons", call: Promise<T>): Promi
   return value;
 }
 
+/** A failure as the user reads it: messages sent by Rust (written in Portuguese, as the original)
+ *  are shown in the interface language. */
 export function errorText(error: unknown): string {
-  return typeof error === "string" ? error : error instanceof Error ? error.message : "erro desconhecido";
+  const raw = typeof error === "string" ? error : error instanceof Error ? error.message : null;
+  return raw === null ? t("app.unknownError") : backendText(raw);
 }

@@ -6,6 +6,8 @@ import { api, errorText } from "../api";
 import type { HomeRow, MetaPreview } from "../types";
 import { PosterCard } from "./PosterCard";
 import { useInView } from "./useInView";
+import { inlineSign, t } from "../i18n";
+import { rowTitle } from "../i18n/backend";
 
 interface Props {
   row: HomeRow;
@@ -50,10 +52,10 @@ export function CatalogRow({ row, onOpen, onLoaded, genre = null }: Props) {
 
   const onScroll = () => {
     const el = track.current;
-    if (el && nextSkip !== null && el.scrollLeft + el.clientWidth > el.scrollWidth - 600) void load(nextSkip);
+    if (el && nextSkip !== null && Math.abs(el.scrollLeft) + el.clientWidth > el.scrollWidth - 600) void load(nextSkip);
   };
 
-  const scrollBy = (dir: number) => track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.85, behavior: "smooth" });
+  const scrollBy = (dir: number) => track.current?.scrollBy({ left: dir * inlineSign() * track.current.clientWidth * 0.85, behavior: "smooth" });
 
   // A catalog that answered with nothing is hidden, like the original's empty rows.
   if (items !== null && items.length === 0) return null;
@@ -61,20 +63,20 @@ export function CatalogRow({ row, onOpen, onLoaded, genre = null }: Props) {
   return (
     <section className="row-section" ref={ref} data-content-type={row.contentType}>
       <header className="row-header">
-        <h2>{row.title}</h2>
+        <h2>{rowTitle(row.title)}</h2>
         <span className="muted small">{row.addonName}</span>
         <span className="spacer" />
         {items && (
           <>
-            <button className="icon-btn" aria-label="Anterior" onClick={() => scrollBy(-1)}>‹</button>
-            <button className="icon-btn" aria-label="Próximo" onClick={() => scrollBy(1)}>›</button>
+            <button className="icon-btn" aria-label={t("common.previous")} onClick={() => scrollBy(-1)}>‹</button>
+            <button className="icon-btn" aria-label={t("common.next")} onClick={() => scrollBy(1)}>›</button>
           </>
         )}
       </header>
       {error ? (
         <div className="row-error">
-          Não foi possível carregar este catálogo ({error}).{" "}
-          <button className="link" onClick={() => { setError(null); }}>Tentar novamente</button>
+          {t("row.loadFailed", { error })}{" "}
+          <button className="link" onClick={() => { setError(null); }}>{t("common.retry")}</button>
         </div>
       ) : (
         <div className="row-track" ref={track} onScroll={onScroll}>

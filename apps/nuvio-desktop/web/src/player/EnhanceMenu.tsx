@@ -5,61 +5,57 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { AnimeModeName, EnhancementName, MotionName, PictureSettings, PlayerSnapshot } from "../types";
+import { t, tMaybe } from "../i18n";
 
-export const ENHANCEMENTS: { value: EnhancementName; label: string; hint: string }[] = [
-  { value: "off", label: "Desligado", hint: "Imagem original" },
-  { value: "movies", label: "Filmes e séries", hint: "Tira faixas dos degradês, melhora HDR em tela comum" },
-  { value: "animeFast", label: "Anime rápido", hint: "Anime4K com redes leves" },
-  { value: "animeQuality", label: "Anime qualidade", hint: "Anime4K com redes grandes, pede placa de vídeo" },
+// Labels are read when drawn (`label()`), so they follow the interface language.
+type Labeled<T> = { value: T; label: () => string; hint: () => string };
+const option = <T,>(value: T, key: string): Labeled<T> => ({
+  value,
+  label: () => tMaybe(key, key),
+  hint: () => tMaybe(`${key}Hint`, ""),
+});
+
+export const ENHANCEMENTS: Labeled<EnhancementName>[] = [
+  option("off", "enh.off"), option("movies", "enh.movies"), option("animeFast", "enh.animeFast"), option("animeQuality", "enh.animeQuality"),
 ];
 
-export const MOTIONS: { value: MotionName; label: string; hint: string }[] = [
-  { value: "off", label: "Original", hint: "Como o vídeo veio (normalmente 24 quadros)" },
-  { value: "steady", label: "Sem tremidas", hint: "Acerta o ritmo no seu monitor, mantém a cara do anime" },
-  { value: "fluid", label: "Fluido", hint: "Mistura quadros até a taxa do monitor (60, 120, 165 Hz); pode deixar rastros" },
-];
+export const MOTIONS: Labeled<MotionName>[] = [option("off", "motion.off"), option("steady", "motion.steady"), option("fluid", "motion.fluid")];
 
-export const ANIME_MODES: { value: AnimeModeName; label: string; hint: string }[] = [
-  { value: "auto", label: "Automático", hint: "Escolhe pela resolução: A em 1080p, B em 720p, A ou A+A abaixo." },
-  { value: "a", label: "Modo A", hint: "Anime 1080p, borrado ou muito comprimido: reconstrói os traços." },
-  { value: "b", label: "Modo B", hint: "Anime 720p ou com serrilhado e halos: restauração mais suave." },
-  { value: "c", label: "Modo C", hint: "Anime limpo em baixa resolução: amplia e tira ruído." },
-  { value: "aa", label: "Modo A+A", hint: "A com mais força, para SD. Em 1080p costuma exagerar." },
-  { value: "bb", label: "Modo B+B", hint: "B com mais força, para vídeo com metade da tela ou menos." },
-  { value: "ca", label: "Modo C+A", hint: "C com traços reconstruídos, para baixa resolução." },
+export const ANIME_MODES: Labeled<AnimeModeName>[] = [
+  option("auto", "mode.auto"), option("a", "mode.a"), option("b", "mode.b"), option("c", "mode.c"),
+  option("aa", "mode.aa"), option("bb", "mode.bb"), option("ca", "mode.ca"),
 ];
+/** Short names on the mode buttons ("A", "A+A"). */
+const MODE_SHORT: Record<AnimeModeName, () => string> = {
+  auto: () => t("mode.auto"), a: () => "A", b: () => "B", c: () => "C", aa: () => "A+A", bb: () => "B+B", ca: () => "C+A",
+};
 
 type Effect = "denoise" | "deblur" | "darken" | "thin" | "deband";
-const EFFECTS: { key: Effect; label: string; hint: string }[] = [
-  { key: "deblur", label: "Nitidez", hint: "Tira o borrado sem criar halo" },
-  { key: "darken", label: "Escurecer traços", hint: "Contornos mais marcados" },
-  { key: "thin", label: "Afinar traços", hint: "Linhas mais finas" },
-  { key: "denoise", label: "Reduzir ruído", hint: "Limpa granulado e compressão" },
-  { key: "deband", label: "Suavizar degradês", hint: "Tira faixas de cor no céu e nas sombras" },
-];
-const STEPS = ["Não", "Leve", "Média", "Forte"];
+const EFFECTS: { key: Effect; label: () => string; hint: () => string }[] = (["deblur", "darken", "thin", "denoise", "deband"] as const).map((key) => ({
+  key,
+  label: () => tMaybe(`effect.${key}`, key),
+  hint: () => tMaybe(`effect.${key}Hint`, ""),
+}));
+const STEPS = () => [t("step.0"), t("step.1"), t("step.2"), t("step.3")];
 
 type Color = "brightness" | "contrast" | "saturation" | "gamma" | "hue";
-const COLORS: { key: Color; label: string }[] = [
-  { key: "brightness", label: "Brilho" },
-  { key: "contrast", label: "Contraste" },
-  { key: "saturation", label: "Saturação" },
-  { key: "gamma", label: "Gama" },
-  { key: "hue", label: "Matiz" },
-];
+const COLORS: { key: Color; label: () => string }[] = (["brightness", "contrast", "saturation", "gamma", "hue"] as const).map((key) => ({
+  key,
+  label: () => tMaybe(`color.${key}`, key),
+}));
 
-const COLOR_PRESETS: { label: string; values: Record<Color, number> }[] = [
-  { label: "Natural", values: { brightness: 0, contrast: 0, saturation: 0, gamma: 0, hue: 0 } },
-  { label: "Vívido", values: { brightness: 0, contrast: 6, saturation: 16, gamma: 0, hue: 0 } },
-  { label: "Cinema", values: { brightness: -2, contrast: 8, saturation: -4, gamma: -3, hue: 0 } },
-  { label: "Cenas escuras", values: { brightness: 4, contrast: 2, saturation: 2, gamma: 10, hue: 0 } },
+const COLOR_PRESETS: { id: string; label: () => string; values: Record<Color, number> }[] = [
+  { id: "Natural", label: () => t("preset.natural"), values: { brightness: 0, contrast: 0, saturation: 0, gamma: 0, hue: 0 } },
+  { id: "Vívido", label: () => t("preset.vivid"), values: { brightness: 0, contrast: 6, saturation: 16, gamma: 0, hue: 0 } },
+  { id: "Cinema", label: () => t("preset.cinema"), values: { brightness: -2, contrast: 8, saturation: -4, gamma: -3, hue: 0 } },
+  { id: "Cenas escuras", label: () => t("preset.dark"), values: { brightness: 4, contrast: 2, saturation: 2, gamma: 10, hue: 0 } },
 ];
 
 export const PLAIN_PICTURE: PictureSettings = {
   mode: "auto", denoise: 0, deblur: 0, thin: 0, darken: 0, deband: 0, brightness: 0, contrast: 0, saturation: 0, gamma: 0, hue: 0,
 };
 
-const TABS = [["quality", "Qualidade"], ["effects", "Efeitos"], ["color", "Cor"], ["motion", "Fluidez"]] as const;
+const TABS = [["quality", "enh.tabQuality"], ["effects", "enh.tabEffects"], ["color", "enh.tabColor"], ["motion", "enh.tabMotion"]] as const;
 type TabId = (typeof TABS)[number][0];
 
 const samePicture = (a: PictureSettings, b: PictureSettings) => (Object.keys(PLAIN_PICTURE) as (keyof PictureSettings)[]).every((k) => a[k] === b[k]);
@@ -133,8 +129,8 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
     <div className="pc-enhance">
       <button
         className={`pc-icon ${motion !== "off" || changed ? "pc-on" : ""}`}
-        aria-label="Melhorar imagem"
-        title="Melhorar imagem"
+        aria-label={t("enh.button")}
+        title={t("enh.button")}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
@@ -148,7 +144,7 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
         <div className="pc-enhance-menu">
           <div className="pc-tabs" role="tablist">
             {TABS.map(([id, label]) => (
-              <button key={id} role="tab" aria-selected={tab === id} className={`pc-tab ${tab === id ? "active" : ""}`} data-tab-id={id} onClick={() => setTab(id)}>{label}</button>
+              <button key={id} role="tab" aria-selected={tab === id} className={`pc-tab ${tab === id ? "active" : ""}`} data-tab-id={id} onClick={() => setTab(id)}>{t(label)}</button>
             ))}
           </div>
           <div className="pc-tab-body">
@@ -165,13 +161,13 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
                       void api.playerCommand({ type: "setEnhancement", enhancement: option.value });
                     }}
                   >
-                    <b>{option.label}</b>
-                    <small>{option.hint}</small>
+                    <b>{option.label()}</b>
+                    <small>{option.hint()}</small>
                   </button>
                 ))}
                 {anime && (
                   <>
-                    <span className="pc-enhance-title">Modo do Anime4K</span>
+                    <span className="pc-enhance-title">{t("enh.animeMode")}</span>
                     <div className="pc-modes">
                       {ANIME_MODES.map((option) => (
                         <button
@@ -179,18 +175,18 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
                           className={`pc-level ${picture.mode === option.value ? "active" : ""}`}
                           data-mode={option.value}
                           aria-pressed={picture.mode === option.value}
-                          title={option.hint}
+                          title={option.hint()}
                           onClick={() => change({ ...picture, mode: option.value })}
                         >
-                          {option.label.replace("Modo ", "")}
+                          {MODE_SHORT[option.value]()}
                         </button>
                       ))}
                     </div>
-                    <p className="pc-enhance-note">{ANIME_MODES.find((m) => m.value === picture.mode)?.hint}</p>
+                    <p className="pc-enhance-note">{ANIME_MODES.find((m) => m.value === picture.mode)?.hint()}</p>
                     {snapshot.width > 2048 ? (
-                      <p className="pc-enhance-note">Vídeo acima de 1080p: o Anime4K e os efeitos de traço não são aplicados.</p>
+                      <p className="pc-enhance-note">{t("enh.over1080")}</p>
                     ) : native ? (
-                      <p className="pc-enhance-note">Este vídeo já tem a resolução da tela: aqui a mudança é sutil, mais nos traços. Os Efeitos aparecem mais.</p>
+                      <p className="pc-enhance-note">{t("enh.native")}</p>
                     ) : null}
                   </>
                 )}
@@ -201,9 +197,9 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
               <>
                 {EFFECTS.map((effect) => (
                   <div className="pc-effect" key={effect.key}>
-                    <span><b>{effect.label}</b><small>{effect.hint}</small></span>
+                    <span><b>{effect.label()}</b><small>{effect.hint()}</small></span>
                     <div className="pc-steps">
-                      {STEPS.map((label, value) => (
+                      {STEPS().map((label, value) => (
                         <button key={label} className={`pc-level ${picture[effect.key] === value ? "active" : ""}`} data-effect={`${effect.key}:${value}`} aria-pressed={picture[effect.key] === value} onClick={() => change({ ...picture, [effect.key]: value })}>
                           {label}
                         </button>
@@ -211,7 +207,7 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
                     </div>
                   </div>
                 ))}
-                <button className="pc-reset" data-reset="effects" onClick={() => change({ ...picture, denoise: 0, deblur: 0, thin: 0, darken: 0, deband: 0 })}>Zerar efeitos</button>
+                <button className="pc-reset" data-reset="effects" onClick={() => change({ ...picture, denoise: 0, deblur: 0, thin: 0, darken: 0, deband: 0 })}>{t("enh.resetEffects")}</button>
               </>
             )}
 
@@ -221,15 +217,15 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
                   {COLOR_PRESETS.map((preset) => {
                     const active = COLORS.every((c) => picture[c.key] === preset.values[c.key]);
                     return (
-                      <button key={preset.label} className={`pc-level ${active ? "active" : ""}`} data-preset={preset.label} aria-pressed={active} onClick={() => change({ ...picture, ...preset.values })}>
-                        {preset.label}
+                      <button key={preset.id} className={`pc-level ${active ? "active" : ""}`} data-preset={preset.id} aria-pressed={active} onClick={() => change({ ...picture, ...preset.values })}>
+                        {preset.label()}
                       </button>
                     );
                   })}
                 </div>
                 {COLORS.map(({ key, label }) => (
                   <label className="pc-color" key={key}>
-                    <span>{label}</span>
+                    <span>{label()}</span>
                     <input type="range" min={-50} max={50} value={picture[key]} data-color={key} onChange={(e) => change({ ...picture, [key]: Number(e.target.value) })} onPointerUp={send} />
                     <output>{picture[key]}</output>
                   </label>
@@ -248,8 +244,8 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
                   void api.playerCommand({ type: "setMotion", motion: option.value });
                 }}
               >
-                <b>{option.label}</b>
-                <small>{option.hint}</small>
+                <b>{option.label()}</b>
+                <small>{option.hint()}</small>
               </button>
             ))}
           </div>
@@ -262,7 +258,7 @@ export function EnhanceMenu({ snapshot }: { snapshot: PlayerSnapshot }) {
                 compare(true);
               }}
             >
-              {comparing ? "Mostrando o original" : "Segure para ver o original"}
+              {comparing ? t("enh.showingOriginal") : t("enh.holdOriginal")}
             </button>
           )}
         </div>
@@ -286,14 +282,14 @@ export function EnhanceNotice({ snapshot }: { snapshot: PlayerSnapshot | null })
   }, [changes]);
 
   if (!shown || !snapshot) return null;
-  const level = ENHANCEMENTS.find((e) => e.value === snapshot.enhancement)?.label;
+  const level = ENHANCEMENTS.find((e) => e.value === snapshot.enhancement)?.label();
   return (
     <div className="enhance-notice" role="status">
       {snapshot.autoReason === "motion"
-        ? "O movimento não sincronizou com este monitor: voltei para Original."
+        ? t("enh.autoMotion")
         : snapshot.autoReason === "effects"
-          ? "A placa de vídeo não aguentou: desliguei os efeitos de imagem."
-          : `A placa de vídeo não aguentou: melhoria de imagem reduzida para ${level}.`}
+          ? t("enh.autoEffects")
+          : t("enh.autoLevel", { level })}
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { resumeTarget } from "./library";
 import { LiveTv } from "./screens/LiveTv";
 import { Search } from "./screens/Search";
 import { Settings } from "./screens/Settings";
+import { t } from "./i18n";
 import { metaRef, type Bootstrap, type CollectionView, type FolderView, type HistoryEntry, type MetaPreview, type MetaRef, type ProfilesView } from "./types";
 
 
@@ -121,7 +122,7 @@ export function App() {
         if (player.session) await player.close();
         setProfiles(await api.profileSwitch(index));
       } catch (e) {
-        setOpenError(`Não foi possível trocar de perfil: ${errorText(e)}`);
+        setOpenError(t("app.switchFailed", { error: errorText(e) }));
       } finally {
         setSwitching(null);
       }
@@ -145,7 +146,7 @@ export function App() {
   const open = useCallback((item: MetaPreview) => {
     const ref = metaRef(item);
     if (typeof ref === "string") {
-      setOpenError(`Não foi possível abrir “${item.name}”: ${ref}.`);
+      setOpenError(t("app.openFailed", { name: item.name, reason: ref }));
       return;
     }
     setOpenError(null);
@@ -195,14 +196,14 @@ export function App() {
         )}
         {manage && profiles && <ProfilesDialog view={profiles} onChanged={setProfiles} onClose={() => setManage(false)} />}
         {switching !== null && (
-          <div className="switching" role="status" data-testid="profile-switching">Trocando para {switching || "outro perfil"}…</div>
+          <div className="switching" role="status" data-testid="profile-switching">{t("app.switching", { name: switching || t("app.switchingOther") })}</div>
         )}
         <main className="content">
           <UpdateBanner automatic={appMode === "app"} />
-          {bootError && <div className="banner error">Não foi possível ler os dados do Nuvio Astra: {bootError}</div>}
+          {bootError && <div className="banner error">{t("app.bootFailed", { error: bootError })}</div>}
           {openError && <div className="banner error" role="alert">{openError}</div>}
           {boot && boot.addonsFailed > 0 && (
-            <div className="banner">{boot.addonsFailed} de {boot.addonsEnabled} addon(s) não responderam; os demais estão disponíveis.</div>
+            <div className="banner">{t("app.addonsFailed", { count: boot.addonsFailed, total: boot.addonsEnabled })}</div>
           )}
           <div className="screen" hidden={details !== null || folder !== null || tab !== "home"}>
             <Home key={dataKey} onOpen={open} onResume={resume} onOpenFolder={(collection, f) => setFolder({ collection, folder: f })} />

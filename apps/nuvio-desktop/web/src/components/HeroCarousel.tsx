@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MetaPreview } from "../types";
+import { t } from "../i18n";
 
 export const HERO_INTERVAL_MS = 8000;
 
@@ -56,7 +57,7 @@ export function HeroCarousel({ items, onOpen }: Props) {
   const near = (i: number) => i === index || i === (index + 1) % count || i === (index - 1 + count) % count;
 
   return (
-    <section className="hero hero-carousel" ref={ref} aria-roledescription="carrossel" aria-label="Destaques" data-index={index}>
+    <section className="hero hero-carousel" ref={ref} aria-roledescription={t("hero.carousel")} aria-label={t("hero.label")} data-index={index}>
       {items.map((item, i) => (
         <div
           key={`${item.contentType}/${item.id}`}
@@ -70,25 +71,25 @@ export function HeroCarousel({ items, onOpen }: Props) {
               {[item.releaseInfo, item.imdbRating && `★ ${item.imdbRating}`, item.genres.slice(0, 3).join(" · ")].filter(Boolean).join("   ")}
             </div>
             {item.description && <p className="hero-desc">{item.description}</p>}
-            <button className="primary" tabIndex={i === index ? 0 : -1} onClick={() => onOpen(item)}>Ver detalhes</button>
+            <button className="primary" tabIndex={i === index ? 0 : -1} onClick={() => onOpen(item)}>{t("hero.details")}</button>
           </div>
         </div>
       ))}
       {count > 1 && (
         <>
-          <button className="hero-arrow prev" aria-label="Destaque anterior" onClick={() => go(-1)}>
-            <svg viewBox="0 0 24 24" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>
+          <button className="hero-arrow prev" aria-label={t("hero.previous")} onClick={() => go(-1)}>
+            <svg className="flip-rtl" viewBox="0 0 24 24" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>
           </button>
-          <button className="hero-arrow next" aria-label="Próximo destaque" onClick={() => go(1)}>
-            <svg viewBox="0 0 24 24" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+          <button className="hero-arrow next" aria-label={t("hero.next")} onClick={() => go(1)}>
+            <svg className="flip-rtl" viewBox="0 0 24 24" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
           </button>
-          <div className="hero-dots" role="tablist" aria-label="Escolher destaque">
+          <div className="hero-dots" role="tablist" aria-label={t("hero.choose")}>
             {items.map((item, i) => (
               <button
                 key={`${item.contentType}/${item.id}`}
                 role="tab"
                 aria-selected={i === index}
-                aria-label={`Destaque ${i + 1}: ${item.name}`}
+                aria-label={t("hero.item", { index: i + 1, name: item.name })}
                 className={`hero-dot ${i === index ? "active" : ""}`}
                 onClick={() => setIndex(i)}
               >

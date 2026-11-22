@@ -7,6 +7,8 @@ import { set as setAccount, useAccount } from "../account";
 import { ProfileChooser } from "../components/ProfileChooser";
 import { SignInForm } from "../components/SignInForm";
 import type { ProfilesView } from "../types";
+import { t } from "../i18n";
+import { backendText } from "../i18n/backend";
 
 type Step =
   | { name: "account" }
@@ -30,11 +32,11 @@ export function Welcome({ onDone }: { onDone(): void }) {
       const status = await api.accountConnect(confirmOther);
       setAccount(status);
       if (status.state === "needsReview") {
-        setStep({ name: "confirm", question: status.linkQuestion ?? "Confirme para sincronizar este computador com a conta." });
+        setStep({ name: "confirm", question: status.linkQuestion ? backendText(status.linkQuestion) : t("welcome.confirm") });
         return;
       }
       if (status.state === "error" || status.state === "offline") {
-        setStep({ name: "failed", message: status.lastError ?? "Não foi possível sincronizar agora." });
+        setStep({ name: "failed", message: status.lastError ? backendText(status.lastError) : t("acc.syncNowFailed") });
         return;
       }
       const view = await api.profilesList();
@@ -60,49 +62,49 @@ export function Welcome({ onDone }: { onDone(): void }) {
         <img className="gate-logo" src="./nuvio-astra-128.png" alt="" width={72} height={72} draggable={false} />
         {step.name === "account" && (account?.signedIn ? (
           <>
-            <h1>Sincronizar com a conta Nuvio</h1>
-            <p className="muted">Você já está conectado como {account.email}, mas este computador ainda não foi sincronizado.</p>
-            <button className="primary" data-testid="welcome-sync" onClick={() => void connect()}>Sincronizar agora</button>
-            <button className="gate-link" data-testid="welcome-skip" onClick={() => void finish()}>Agora não</button>
+            <h1>{t("welcome.syncWith")}</h1>
+            <p className="muted">{t("welcome.alreadyIn", { email: account.email })}</p>
+            <button className="primary" data-testid="welcome-sync" onClick={() => void connect()}>{t("welcome.syncNow")}</button>
+            <button className="gate-link" data-testid="welcome-skip" onClick={() => void finish()}>{t("welcome.notNow")}</button>
           </>
         ) : (
           <>
-            <h1>Entre na sua conta Nuvio</h1>
-            <p className="muted">Perfis, addons, Continuar assistindo, favoritos, coleções, Início e configurações chegam sozinhos. O que já existe neste computador é mantido junto, com uma cópia de segurança antes.</p>
+            <h1>{t("welcome.signIn")}</h1>
+            <p className="muted">{t("welcome.signInHint")}</p>
             <SignInForm signUp onSignedIn={() => void connect()} />
-            <button className="gate-link" data-testid="welcome-skip" onClick={() => void finish()}>Continuar sem conta</button>
+            <button className="gate-link" data-testid="welcome-skip" onClick={() => void finish()}>{t("welcome.noAccount")}</button>
           </>
         ))}
         {step.name === "syncing" && (
           <>
-            <h1>Sincronizando</h1>
-            <p className="muted" role="status"><span className="spinner" aria-hidden /> Recebendo os dados da sua conta…</p>
+            <h1>{t("welcome.syncing")}</h1>
+            <p className="muted" role="status"><span className="spinner" aria-hidden /> {t("welcome.receiving")}</p>
           </>
         )}
         {step.name === "confirm" && (
           <>
-            <h1>Dados de outra conta</h1>
+            <h1>{t("welcome.otherData")}</h1>
             <p className="muted">{step.question}</p>
             <div className="gate-actions">
-              <button className="primary" data-testid="welcome-confirm" onClick={() => void connect(true)}>Sincronizar com esta conta</button>
-              <button className="ghost" data-testid="welcome-other" onClick={() => void otherAccount()}>Usar outra conta</button>
+              <button className="primary" data-testid="welcome-confirm" onClick={() => void connect(true)}>{t("welcome.syncThis")}</button>
+              <button className="ghost" data-testid="welcome-other" onClick={() => void otherAccount()}>{t("lock.otherAccount")}</button>
             </div>
-            <button className="gate-link" onClick={() => void finish()}>Agora não</button>
+            <button className="gate-link" onClick={() => void finish()}>{t("welcome.notNow")}</button>
           </>
         )}
         {step.name === "failed" && (
           <>
-            <h1>A sincronização não terminou</h1>
+            <h1>{t("welcome.failedTitle")}</h1>
             <p className="muted">{step.message}</p>
             <div className="gate-actions">
-              <button className="primary" onClick={() => void connect()}>Tentar de novo</button>
-              <button className="ghost" onClick={() => void finish()}>Abrir o app</button>
+              <button className="primary" onClick={() => void connect()}>{t("common.retry")}</button>
+              <button className="ghost" onClick={() => void finish()}>{t("welcome.openApp")}</button>
             </div>
           </>
         )}
         {step.name === "profiles" && (
           <>
-            <h1>Quem está assistindo?</h1>
+            <h1>{t("prof.who")}</h1>
             <ProfileChooser view={step.view} onChosen={() => void finish()} />
           </>
         )}

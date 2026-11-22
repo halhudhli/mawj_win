@@ -563,7 +563,7 @@ fn main() {
         ])
         .setup(move |app| {
             let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-                .title("Nuvio Astra")
+                .title("موج")
                 .inner_size(1280.0, 760.0)
                 .min_inner_size(800.0, 480.0)
                 // Normal use: created hidden and shown maximized by `window_ready` once the interface

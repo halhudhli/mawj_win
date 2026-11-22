@@ -4,13 +4,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, errorText } from "../api";
 import type { PlayerSnapshot, SubtitleList, SubtitleOption, Track } from "../types";
+import { intlLocale, t } from "../i18n";
 
 // ISO 639-2/B codes, which Intl does not read.
 const BIBLIOGRAPHIC: Record<string, string> = {
   fre: "fr", ger: "de", chi: "zh", cze: "cs", dut: "nl", gre: "el", rum: "ro", slo: "sk", per: "fa", alb: "sq", arm: "hy",
   baq: "eu", bur: "my", geo: "ka", ice: "is", mac: "mk", may: "ms", tib: "bo", wel: "cy", pob: "pt-BR",
 };
-const NAMES = new Intl.DisplayNames(["pt-BR"], { type: "language" });
+let names: Intl.DisplayNames | null = null;
+const displayNames = () => (names ??= new Intl.DisplayNames([intlLocale()], { type: "language" }));
 
 export function canonicalLanguage(code: string | null | undefined): string {
   const raw = code?.trim().replace(/_/g, "-").toLowerCase();
@@ -23,10 +25,10 @@ export function canonicalLanguage(code: string | null | undefined): string {
 }
 
 export function languageName(code: string): string {
-  if (!code) return "Idioma não informado";
+  if (!code) return t("subs.unknownLanguage");
   let name = code;
   try {
-    name = NAMES.of(code) ?? code;
+    name = displayNames().of(code) ?? code;
   } catch {
     /* kept as the addon wrote it */
   }
@@ -55,14 +57,14 @@ export function subtitleGroups(tracks: Track[], options: SubtitleOption[], prefe
     if (!groups.has(language)) groups.set(language, { language, name: languageName(language), choices: [] });
     groups.get(language)!.choices.push(choice);
   };
-  const subs = tracks.filter((t) => t.kind === "sub");
-  for (const t of subs) {
-    const detail = [t.external ? "Carregada" : "No arquivo", t.forced && "forçada", t.codec].filter(Boolean).join(" · ");
-    add(t.lang, { id: `track:${t.id}`, label: t.title || `Faixa ${t.id}`, detail, track: t });
+  const subs = tracks.filter((track) => track.kind === "sub");
+  for (const track of subs) {
+    const detail = [track.external ? t("subs.loaded") : t("subs.inFile"), track.forced && t("subs.forced"), track.codec].filter(Boolean).join(" · ");
+    add(track.lang, { id: `track:${track.id}`, label: track.title || t("player.track", { id: track.id }), detail, track });
   }
-  const loaded = new Set(subs.filter((t) => t.external).map((t) => t.title));
+  const loaded = new Set(subs.filter((track) => track.external).map((track) => track.title));
   for (const o of options) {
-    if (!loaded.has(o.title)) add(o.language, { id: `option:${o.index}`, label: o.title, detail: o.source === "Fonte" ? "Da fonte" : "De addon", option: o });
+    if (!loaded.has(o.title)) add(o.language, { id: `option:${o.index}`, label: o.title, detail: o.source === "Fonte" ? t("subs.fromSource") : t("subs.fromAddon"), option: o });
   }
   const wanted = preferred.map(canonicalLanguage).filter(Boolean);
   const rank = (language: string) => {
@@ -72,7 +74,7 @@ export function subtitleGroups(tracks: Track[], options: SubtitleOption[], prefe
     const base = wanted.findIndex((w) => w.split("-")[0] === language.split("-")[0]);
     return base >= 0 ? 100 + base : 500;
   };
-  return [...groups.values()].sort((a, b) => rank(a.language) - rank(b.language) || a.name.localeCompare(b.name, "pt-BR"));
+  return [...groups.values()].sort((a, b) => rank(a.language) - rank(b.language) || a.name.localeCompare(b.name, intlLocale()));
 }
 
 /** The list of one session, asked when a menu opens. */
@@ -134,7 +136,7 @@ export function useSubtitles(snapshot: PlayerSnapshot | null, open: boolean) {
         await api.playerSubtitleLoad(session, choice.option.index);
         return true;
       } catch (e) {
-        if (current.current === session) setError(`Não foi possível carregar essa legenda: ${errorText(e)}`);
+        if (current.current === session) setError(t("subs.loadFailed", { error: errorText(e) }));
         return false;
       } finally {
         if (current.current === session) setLoading(null);

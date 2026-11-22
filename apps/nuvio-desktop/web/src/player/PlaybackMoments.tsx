@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { MetaVideo, Moment, Moments, PlayerSnapshot } from "../types";
 import { airDate, episodeTitle, hasAired, reachedEnd } from "./episodes";
+import { t } from "../i18n";
 
 const NOTHING: Moments = { segments: [], nextEpisodeAt: null };
 /** The button stays this long, then returns with the controls. */
@@ -18,21 +19,21 @@ const SEEK_JUMP_S = 3;
 const keyOf = (m: Moment) => `${m.kind}:${m.start}:${m.end}`;
 
 function skipLabel(m: Moment): string {
-  if (m.toPostCredits) return "Pular para pós-créditos";
+  if (m.toPostCredits) return t("skip.postCredits");
   switch (m.kind) {
-    case "intro": return "Pular introdução";
-    case "recap": return "Pular recapitulação";
-    case "outro": return "Pular encerramento";
-    case "movie-credits": return "Pular créditos";
-    default: return "Pular";
+    case "intro": return t("skip.intro");
+    case "recap": return t("skip.recap");
+    case "outro": return t("skip.outro");
+    case "movie-credits": return t("skip.credits");
+    default: return t("skip.generic");
   }
 }
 
-const SKIPPED: Partial<Record<Moment["kind"], string>> = {
-  intro: "Introdução pulada",
-  recap: "Recapitulação pulada",
-  outro: "Encerramento pulado",
-  "movie-credits": "Créditos pulados",
+const SKIPPED: Partial<Record<Moment["kind"], () => string>> = {
+  intro: () => t("skipped.intro"),
+  recap: () => t("skipped.recap"),
+  outro: () => t("skipped.outro"),
+  "movie-credits": () => t("skipped.credits"),
 };
 
 /** The moments of a session, asked again when the duration or the chapters change. */
@@ -106,7 +107,7 @@ export function PlaybackMoments({ snapshot: s, moments, next, covered, chromeVis
     if (!active?.auto || s.paused || s.buffering || covered || autoDone.current.has(keyOf(active))) return;
     if (active.end <= startedAt.current || seekPoints.current.some((p) => p >= active.start && p < active.end)) return;
     skip(active);
-    setNotice(SKIPPED[active.kind] ?? null);
+    setNotice(SKIPPED[active.kind]?.() ?? null);
   }, [time, active, covered, skip, s.loaded, s.paused, s.buffering, s.speed]);
 
   useEffect(() => {
@@ -157,12 +158,12 @@ export function PlaybackMoments({ snapshot: s, moments, next, covered, chromeVis
                 {aired && <span aria-hidden>▶</span>}
               </span>
               <span className="next-card-text">
-                <small>Próximo episódio</small>
+                <small>{t("player.nextEpisode")}</small>
                 <b>{episodeTitle(next)}</b>
-                <em>{aired ? "Escolher fonte" : `Não exibido · ${airDate(next.released)}`}</em>
+                <em>{aired ? t("next.chooseSource") : t("player.notAired", { date: airDate(next.released) })}</em>
               </span>
             </button>
-            {!reachedEnd(s) && <button className="next-card-close" aria-label="Dispensar próximo episódio" onClick={() => setDismissed(true)}>✕</button>}
+            {!reachedEnd(s) && <button className="next-card-close" aria-label={t("next.dismiss")} onClick={() => setDismissed(true)}>✕</button>}
           </div>
         )}
       </div>

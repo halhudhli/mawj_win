@@ -14,6 +14,7 @@ import { CollectionRow } from "../components/CollectionRow";
 import { ContinueWatchingRow } from "../components/ContinueWatching";
 import { HeroCarousel } from "../components/HeroCarousel";
 import type { CollectionView, FolderView, HistoryEntry, HomeView, MetaPreview } from "../types";
+import { t } from "../i18n";
 
 interface Props {
   onOpen(item: MetaPreview): void;
@@ -109,9 +110,9 @@ export function Home({ onOpen, onResume, onOpenFolder }: Props) {
     };
   }, [view]);
 
-  if (error) return <div className="screen-message">Não foi possível ler os addons: {error}</div>;
-  if (!rows) return <div className="screen-message">Carregando catálogos…</div>;
-  if (!rows.length) return <div className="screen-message">Nenhum catálogo disponível. Ative ou adicione um addon em Configurações → Addons para ver catálogos na tela inicial.</div>;
+  if (error) return <div className="screen-message">{t("home.addonsFailed", { error })}</div>;
+  if (!rows) return <div className="screen-message">{t("home.loading")}</div>;
+  if (!rows.length) return <div className="screen-message">{t("home.empty")}</div>;
 
   return (
     <div className="home">

@@ -4,6 +4,7 @@
 import { memo, useState } from "react";
 import { libraryItemFromPreview, toggleFavorite, useIsFavorite } from "../library";
 import type { LibraryItem, MetaPreview } from "../types";
+import { t } from "../i18n";
 
 interface Props {
   item: MetaPreview | Omit<LibraryItem, "savedAtEpochMs">;
@@ -14,7 +15,7 @@ interface Props {
 export const FavoriteButton = memo(function FavoriteButton({ item, variant = "icon" }: Props) {
   const on = useIsFavorite(item.contentType, item.id);
   const [failed, setFailed] = useState(false);
-  const label = on ? "Remover da Biblioteca" : "Salvar na Biblioteca";
+  const label = on ? t("fav.remove") : t("fav.add");
   const click = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -27,12 +28,12 @@ export const FavoriteButton = memo(function FavoriteButton({ item, variant = "ic
       className={`fav-btn ${variant} ${on ? "on" : ""} ${failed ? "failed" : ""}`}
       aria-pressed={on}
       aria-label={label}
-      title={failed ? "Não foi possível salvar. Tente de novo." : label}
+      title={failed ? t("fav.failed") : label}
       data-testid="favorite"
       onClick={click}
     >
       <span aria-hidden>{on ? "♥" : "♡"}</span>
-      {variant === "pill" && <span>{on ? "Na Biblioteca" : "Salvar"}</span>}
+      {variant === "pill" && <span>{on ? t("fav.inLibrary") : t("fav.save")}</span>}
     </button>
   );
 });

@@ -4,9 +4,10 @@
 
 import { memo, useEffect, useState } from "react";
 import { api } from "../api";
-import { clock, episodeCode, lastWatched, remaining, removeHistory, useLibraryVersion } from "../library";
+import { episodeCode, lastWatched, remaining, removeHistory, useLibraryVersion, watchedFor } from "../library";
 import type { HistoryEntry } from "../types";
 import { airDate } from "../player/episodes";
+import { t } from "../i18n";
 
 interface CardProps {
   entry: HistoryEntry;
@@ -21,11 +22,11 @@ export const ContinueCard = memo(function ContinueCard({ entry, onResume, onRemo
   const fresh = entry.nextUp && !entry.inProgress;
   return (
     <div className="cw-wrap">
-      <button className="cw-card" onClick={() => onResume(entry)} data-key={entry.key} data-next-up={entry.nextUp || undefined} title={fresh ? `Próximo episódio de ${entry.title}` : `Continuar ${entry.title}`}>
+      <button className="cw-card" onClick={() => onResume(entry)} data-key={entry.key} data-next-up={entry.nextUp || undefined} title={fresh ? t("cw.nextOf", { title: entry.title }) : t("cw.resume", { title: entry.title })}>
         <div className="cw-art">
           {image ? <img src={image} alt="" loading="lazy" decoding="async" draggable={false} /> : <span className="card-fallback">{entry.title}</span>}
           <span className="cw-play" aria-hidden>▶</span>
-          {entry.nextUp && <span className="cw-badge">{entry.airs ? `Estreia em ${airDate(entry.airs)}` : "Próximo episódio"}</span>}
+          {entry.nextUp && <span className="cw-badge">{entry.airs ? t("cw.airs", { date: airDate(entry.airs) }) : t("cw.nextEpisode")}</span>}
           {!fresh && (
             <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(entry.fraction * 100)}>
               <div style={{ width: `${Math.max(2, entry.fraction * 100)}%` }} />
@@ -37,12 +38,12 @@ export const ContinueCard = memo(function ContinueCard({ entry, onResume, onRemo
           {[code && `${code}${entry.episodeTitle ? ` · ${entry.episodeTitle}` : ""}`].filter(Boolean).join("")}
         </div>
         <div className="card-sub">
-          {[entry.positionMs > 0 && `${clock(entry.positionMs)} assistidos`, left].filter(Boolean).join(" · ")}
+          {[entry.positionMs > 0 && watchedFor(entry.positionMs), left].filter(Boolean).join(" · ")}
         </div>
         <div className="card-sub">{lastWatched(entry.lastWatchedEpochMs)}</div>
       </button>
       {onRemove && (
-        <button className="fav-btn icon" aria-label={`Remover ${entry.title} de Continuar assistindo`} title="Remover" data-testid="cw-remove" onClick={() => onRemove(entry)}>
+        <button className="fav-btn icon" aria-label={t("cw.removeFrom", { title: entry.title })} title={t("common.remove")} data-testid="cw-remove" onClick={() => onRemove(entry)}>
           ✕
         </button>
       )}
@@ -83,7 +84,7 @@ export function ContinueWatchingRow({ onResume }: { onResume(entry: HistoryEntry
   return (
     <section className="row-section" data-testid="home-continue">
       <header className="row-header">
-        <h2>Continuar assistindo</h2>
+        <h2>{t("cw.title")}</h2>
       </header>
       <div className="row-track">
         {items.map((e) => (

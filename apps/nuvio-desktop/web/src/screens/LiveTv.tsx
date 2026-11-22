@@ -11,9 +11,14 @@ import { usePlayer } from "../player/PlayerContext";
 import { PlayerControls } from "../player/PlayerControls";
 import { PlayerSurface } from "../player/PlayerSurface";
 import type { Channel, ChannelList } from "../types";
+import { intlLocale, t } from "../i18n";
+import { backendText } from "../i18n/backend";
 
 const ALL = "__all__";
 const FAVORITES = "__favorites__";
+// Channels without a category (the addon sent none); shown in the interface language.
+const OTHER = "Outros";
+const categoryName = (name: string) => (name === OTHER ? t("tv.other") : name);
 
 // Chosen channel addons, remembered between visits: `null` = all of them (including addons that
 // appear later), otherwise exactly the checked ones (an empty list shows no channel).
@@ -78,7 +83,7 @@ export function LiveTv() {
   const addonOptions = useMemo(() => {
     const counts = new Map<string, number>();
     for (const c of list?.channels ?? []) counts.set(c.addonName, (counts.get(c.addonName) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+    return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0], intlLocale()));
   }, [list]);
   // A remembered addon that no longer provides channels is ignored.
   // A remembered choice whose addons no longer provide channels falls back to all of them.
@@ -94,7 +99,7 @@ export function LiveTv() {
   );
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const c of pool) for (const g of c.genres.length ? c.genres : ["Outros"]) counts.set(g, (counts.get(g) ?? 0) + 1);
+    for (const c of pool) for (const g of c.genres.length ? c.genres : [OTHER]) counts.set(g, (counts.get(g) ?? 0) + 1);
     // Same order as the full list.
     return (list?.categories ?? []).filter(([name]) => counts.has(name)).map(([name]) => [name, counts.get(name)!] as [string, number]);
   }, [pool, list]);
@@ -109,7 +114,7 @@ export function LiveTv() {
     return pool.filter((c) => {
       if (category === FAVORITES && !favoriteSet.has(c.key)) return false;
       if (category !== ALL && category !== FAVORITES) {
-        const cats = c.genres.length ? c.genres : ["Outros"];
+        const cats = c.genres.length ? c.genres : [OTHER];
         if (!cats.includes(category)) return false;
       }
       return !q || c.name.toLowerCase().includes(q) || c.genres.some((g) => g.toLowerCase().includes(q));
@@ -129,7 +134,7 @@ export function LiveTv() {
       const stream = groups.flatMap((g) => g.streams).find((s) => s.kind === "direct");
       if (!stream) {
         const reason = groups.find((g) => g.error)?.error;
-        setChannelError(reason ? `O addon respondeu com erro: ${reason}` : "O addon não forneceu um stream reproduzível para este canal.");
+        setChannelError(reason ? t("tv.addonError", { reason: backendText(reason) }) : t("tv.noStream"));
         return;
       }
       // Leaving fullscreen returns to this preview (FullPlayer uses `returnTo`).
@@ -151,7 +156,7 @@ export function LiveTv() {
     try {
       setFavorites(await api.liveTvToggleFavorite(key));
     } catch (e) {
-      setChannelError(`Não foi possível salvar o favorito: ${errorText(e)}`);
+      setChannelError(t("tv.favoriteFailed", { error: errorText(e) }));
     }
   };
 
@@ -166,33 +171,33 @@ export function LiveTv() {
       channelsCache = l;
       setList(l);
     } catch (e) {
-      setChannelError(`Não foi possível recarregar: ${errorText(e)}`);
+      setChannelError(t("tv.reloadFailed", { error: errorText(e) }));
     } finally {
       setReloading(false);
     }
   };
 
-  const categoryTitle = category === ALL ? "Todos os canais" : category === FAVORITES ? "Favoritos" : category;
+  const categoryTitle = category === ALL ? t("tv.allChannels") : category === FAVORITES ? t("tv.favorites") : categoryName(category);
 
   const goFullscreen = async () => {
     if (!player.session) return;
     player.setView("full");
     await player.setWindowFullscreen(true);
   };
-  if (error) return <div className="screen-message">Não foi possível carregar os canais: {error}</div>;
+  if (error) return <div className="screen-message">{t("tv.loadFailed", { error })}</div>;
 
   return (
     <div className="livetv">
       <header className="livetv-header">
         <div className="search-bar livetv-search">
-          <input type="search" placeholder="Buscar canal ou categoria" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Buscar canal" />
+          <input type="search" placeholder={t("tv.searchPlaceholder")} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t("tv.searchLabel")} />
           <AddonPicker options={addonOptions} selected={activeAddons} onChange={setAddons} />
           <button
             className={`livetv-reload ${reloading ? "spinning" : ""}`}
             onClick={() => void reload()}
             disabled={reloading || !list}
-            title={activeAddons && activeAddons.length ? "Recarregar os addons selecionados" : "Recarregar os addons de canais"}
-            aria-label="Recarregar addons de canais"
+            title={activeAddons && activeAddons.length ? t("tv.reloadSelected") : t("tv.reloadAll")}
+            aria-label={t("tv.reloadAll")}
             data-testid="livetv-reload"
           >
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -202,17 +207,17 @@ export function LiveTv() {
         </div>
       </header>
 
-      <nav className="livetv-categories" aria-label="Categorias de canais">
+      <nav className="livetv-categories" aria-label={t("tv.categories")}>
         <button className={`cat-item ${category === ALL ? "active" : ""}`} onClick={() => setCategory(ALL)}>
-          <span className="cat-name">Todos</span> {list && <span className="count">{pool.length}</span>}
+          <span className="cat-name">{t("tv.all")}</span> {list && <span className="count">{pool.length}</span>}
         </button>
         <button className={`cat-item ${category === FAVORITES ? "active" : ""}`} onClick={() => setCategory(FAVORITES)}>
-          <span className="cat-name">★ Favoritos</span> <span className="count">{favoriteCount}</span>
+          <span className="cat-name">{t("tv.favoritesStar")}</span> <span className="count">{favoriteCount}</span>
         </button>
         <div className="cat-divider" aria-hidden />
         {categories.map(([name, count]) => (
           <button key={name} className={`cat-item ${category === name ? "active" : ""}`} onClick={() => setCategory(name)} title={name}>
-            <span className="cat-name">{name}</span> <span className="count">{count}</span>
+            <span className="cat-name">{categoryName(name)}</span> <span className="count">{count}</span>
           </button>
         ))}
       </nav>
@@ -220,16 +225,16 @@ export function LiveTv() {
       <div className="channel-list" role="list">
         <div className="channel-list-title">
           <span>{categoryTitle}</span>
-          <span className="muted small">{visible.length} canais</span>
+          <span className="muted small">{t("tv.channelCount", { count: visible.length })}</span>
         </div>
-        {!list && <div className="screen-message">Carregando canais…</div>}
+        {!list && <div className="screen-message">{t("tv.loading")}</div>}
         {list && !visible.length && (
           <div className="screen-message muted">
             {!list.channels.length
-              ? "Nenhum addon instalado fornece canais de TV."
+              ? t("tv.noAddons")
               : activeAddons !== null && activeAddons.length === 0
-                ? "Nenhum addon de canais selecionado. Escolha um ou mais no seletor ao lado da busca."
-                : "Nenhum canal neste filtro."}
+                ? t("tv.noneSelected")
+                : t("tv.noneInFilter")}
           </div>
         )}
         {visible.map((c) => (
@@ -243,7 +248,7 @@ export function LiveTv() {
             </button>
             <button
               className={`fav ${favoriteSet.has(c.key) ? "on" : ""}`}
-              aria-label={favoriteSet.has(c.key) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              aria-label={favoriteSet.has(c.key) ? t("tv.removeFavorite") : t("tv.addFavorite")}
               aria-pressed={favoriteSet.has(c.key)}
               onClick={() => void toggleFavorite(c.key)}
             >
@@ -251,14 +256,14 @@ export function LiveTv() {
             </button>
           </div>
         ))}
-        {list && list.failedCatalogs > 0 && <div className="muted small pad">{list.failedCatalogs} catálogo(s) de TV não responderam.</div>}
+        {list && list.failedCatalogs > 0 && <div className="muted small pad">{t("tv.failedCatalogs", { count: list.failedCatalogs })}</div>}
       </div>
 
       <aside className="livetv-preview">
         <PlayerSurface active={embedded} className="preview-hole">
           {!embedded && (
             <div className="hole-placeholder">
-              {resolving ? "Sintonizando…" : current ? "" : "Escolha um canal para assistir"}
+              {resolving ? t("tv.tuning") : current ? "" : t("tv.choose")}
             </div>
           )}
           {embedded && (
@@ -278,17 +283,17 @@ export function LiveTv() {
                 {current.logo && <img src={current.logo} alt="" />}
                 <div>
                   <h2>{current.name}</h2>
-                  <div className="muted small">Origem: {current.addonName}</div>
+                  <div className="muted small">{t("tv.source", { addon: current.addonName })}</div>
                 </div>
               </div>
-              {resolving && <div className="muted">Resolvendo o stream deste canal…</div>}
-              {(channelError || player.error) && <div className="row-error">{channelError ?? `Falha ao reproduzir: ${player.error}`}</div>}
+              {resolving && <div className="muted">{t("tv.resolving")}</div>}
+              {(channelError || player.error) && <div className="row-error">{channelError ?? t("details.playFailed", { error: player.error })}</div>}
               <div className="preview-epg" data-testid="preview-epg">
                 <EpgGuide channelKey={current.key} />
               </div>
             </>
           ) : (
-            <div className="muted">Os streams são resolvidos somente ao escolher um canal.</div>
+            <div className="muted">{t("tv.resolveNote")}</div>
           )}
         </div>
       </aside>

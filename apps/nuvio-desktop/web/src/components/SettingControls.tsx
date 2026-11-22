@@ -1,6 +1,7 @@
 // Controls shared by the Settings sections.
 
 import type { ReactNode } from "react";
+import { t } from "../i18n";
 
 export function Row({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
@@ -41,7 +42,7 @@ export function ColorField({ value, onChange, withOpacity, label }: { value: str
     <span className="color-field">
       <input type="color" value={rgb} aria-label={label} onChange={(e) => onChange(`#${alpha}${e.target.value.slice(1).toUpperCase()}`)} />
       {withOpacity && (
-        <Slider label={`${label} — opacidade`} value={opacity} min={0} max={100} unit="%" onChange={(o) => onChange(`#${hex2((o / 100) * 255)}${value.slice(3)}`)} />
+        <Slider label={t("sa.opacity", { label })} value={opacity} min={0} max={100} unit="%" onChange={(o) => onChange(`#${hex2((o / 100) * 255)}${value.slice(3)}`)} />
       )}
     </span>
   );

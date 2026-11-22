@@ -5,8 +5,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { EpgView } from "../types";
+import { formatTime, t } from "../i18n";
 
-const hhmm = (ms: number) => new Date(ms).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const hhmm = (ms: number) => formatTime(new Date(ms));
 
 export function EpgGuide({ channelKey }: { channelKey: string }) {
   const [view, setView] = useState<EpgView | null>(null);
@@ -44,11 +45,11 @@ export function EpgGuide({ channelKey }: { channelKey: string }) {
   useEffect(() => {
     if (!airing) return;
     const wait = Math.max(5_000, airing.endMs - Date.now() + 3_000);
-    const t = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setNow(Date.now());
       setReload((r) => r + 1);
     }, wait);
-    return () => window.clearTimeout(t);
+    return () => window.clearTimeout(timer);
   }, [airing?.endMs]);
 
   // The program airing now at the top of the list (past ones stay above, reachable by scrolling).
@@ -58,9 +59,9 @@ export function EpgGuide({ channelKey }: { channelKey: string }) {
     list.current.scrollTop = current.current ? current.current.offsetTop - list.current.offsetTop : 0;
   }, [view, channelKey]);
 
-  if (failed) return <div className="epg-empty">Não foi possível carregar a programação deste canal.</div>;
-  if (!view) return <div className="epg-empty">Carregando a programação…</div>;
-  if (!view.programs.length) return <div className="epg-empty">Este canal não informa a programação.</div>;
+  if (failed) return <div className="epg-empty">{t("epg.failed")}</div>;
+  if (!view) return <div className="epg-empty">{t("epg.loading")}</div>;
+  if (!view.programs.length) return <div className="epg-empty">{t("epg.none")}</div>;
 
   return (
     <div className="epg" ref={list} data-testid="epg">
@@ -76,12 +77,12 @@ export function EpgGuide({ channelKey }: { channelKey: string }) {
             </div>
             <div className="epg-text">
               <div className="epg-title">
-                {isNow && <span className="epg-badge">AGORA</span>}
+                {isNow && <span className="epg-badge">{t("epg.now")}</span>}
                 {p.title}
               </div>
               {isNow && p.description && <div className="epg-desc">{p.description}</div>}
               {isNow && (
-                <div className="epg-progress" aria-label={`${Math.round(progress)}% exibido`}>
+                <div className="epg-progress" aria-label={t("epg.shown", { percent: Math.round(progress) })}>
                   <span style={{ width: `${progress}%` }} />
                 </div>
               )}
