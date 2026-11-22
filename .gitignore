@@ -1,0 +1,17 @@
+# Rust build output
+/target/
+
+# Frontend dependencies and build output
+/apps/nuvio-desktop/web/node_modules/
+/apps/nuvio-desktop/web/dist/
+
+# Tauri generated schemas (rebuilt on every build)
+/apps/nuvio-desktop/gen/
+
+# Local build settings and secrets
+local.properties
+.env
+.env.*
+*.key
+*.pem
+*.pfx
